@@ -5,15 +5,13 @@
 // Distributed under terms of the MIT license.
 //
 
-import '../src/security.dart';
+import '../lib/security.dart';
 
-
-main(){
-   TTSecurity security = TTSecurity.DefaultSecurity();
-   var message="测试一下系";
-   var tt = "9IELmyN7fAqqsTe5bGFUSg==";
-   print(security.decryptText(tt));
-   print(security.encryptText(message));
-   print(security.decryptText(security.encryptText(message)));
+main() {
+  TTSecurity security = TTSecurity.DefaultSecurity();
+  var message = "测试一下系";
+  var tt = "9IELmyN7fAqqsTe5bGFUSg==";
+  print(security.decryptText(tt));
+  print(security.encryptText(message));
+  print(security.decryptText(security.encryptText(message)));
 }
-

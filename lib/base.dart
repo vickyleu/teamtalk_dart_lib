@@ -5,31 +5,29 @@
 // Distributed under terms of the MIT license.
 //
 
-
-
 //base class
 
-import "dart:typed_data";
 import "dart:async";
+import "dart:typed_data";
 import 'package:protobuf/protobuf.dart';
 
 // 序列号生成器 自增生成
 class SeqGen {
   static final SeqGen Singleton = SeqGen._internal();
   int _seqNumber;
+
   factory SeqGen() {
     return Singleton;
   }
 
-  SeqGen._internal(){
-    _seqNumber=0;
+  SeqGen._internal() {
+    _seqNumber = 0;
   }
 
   gen() {
     return ++_seqNumber;
   }
 }
-
 
 // 协议单元 16字节协议头+pb序列化数据
 class ImPdu {
@@ -42,7 +40,9 @@ class ImPdu {
   int reversed = 0;
   GeneratedMessage message;
   List<int> buffer;
+
   ImPdu();
+
   makeBuffer() {
     Uint8List data = message.writeToBuffer();
     length = 16 + data.length;
@@ -59,9 +59,8 @@ class ImPdu {
     return buffer;
   }
 
-  
   _fromBuffer(List<int> data) {
-    buffer = new List.from(data,growable: false);
+    buffer = new List.from(data, growable: false);
     version = (buffer[4] << 8) + buffer[5];
     flag = (buffer[6] << 8) + buffer[7];
     serviceId = (buffer[8] << 8) + buffer[9];
@@ -84,65 +83,66 @@ class ImPdu {
   }
 
   static ImPdu buildFromBuffer(List<int> data) {
-    if(data.length < 16){
+    if (data.length < 16) {
       //print('cache too min:' + data.length.toString());
       return null;
     }
-    
+
     int length = data[0];
     for (int i = 1; i < 4; i++) {
       length = (length << 8) + data[i];
     }
-    
+
     if (length <= data.length) {
       var pdu = new ImPdu();
-      pdu._fromBuffer(data.sublist(0,length));
+      pdu._fromBuffer(data.sublist(0, length));
       pdu.length = length;
       return pdu;
-    }else {
+    } else {
       //print('$length != ' + data.length.toString());
     }
     return null;
   }
 }
 
-
 abstract class IMBaseClient {
   void sendPdu(ImPdu pdu);
+
   void sendPbMsg(GeneratedMessage message, int serviceId, int commandId);
+
   int userID();
 }
-
 
 abstract class IMBaseService {
   IMBaseClient client;
   Map<int, Function> funcMap = new Map<int, Function>();
 
   IMBaseService(this.client);
-  void handle(ImPdu pdu){
+
+  void handle(ImPdu pdu) {
     var msg = unPackPdu(pdu, pdu.commandId);
     int seq = pdu.seqNumber;
-    if (msg != null){
+    if (msg != null) {
       Function func = funcMap.remove(seq);
-      if(func != null){
-         func(msg);  
+      if (func != null) {
+        func(msg);
       }
-    }else {
+    } else {
       //print("not for:" + pdu.commandId.toString());
     }
   }
 
   int serviceId();
 
-
-  Future fetchApi(GeneratedMessage message, int commandId,{Completer completer}) {
-    if(completer == null) {
+  Future fetchApi(GeneratedMessage message, int commandId,
+      {Completer completer}) {
+    if (completer == null) {
       completer = new Completer();
     }
-      requestForPbMsg(message, commandId,((result){
-        completer.complete(result);
-      }));
-      return completer.future;
+    requestForPbMsg(message, commandId, ((result) {
+      completer.complete(result);
+    }));
+    return completer.future;
   }
 
   void requestForPbMsg(GeneratedMessage message, int commandId,
@@ -157,4 +157,3 @@ abstract class IMBaseService {
 
   unPackPdu(ImPdu pdu, int commandId);
 }
-

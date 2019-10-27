@@ -4,21 +4,24 @@
 //
 // Distributed under terms of the MIT license.
 //
+import "dart:async";
 import 'dart:convert';
 import "dart:io";
-import "dart:async";
+
 import 'package:protobuf/protobuf.dart';
-import "../pb/IM.BaseDefine.pb.dart";
-import "../pb/IM.Message.pb.dart";
+
 import './base.dart';
-import './service.dart';
 import './security.dart';
+import './service.dart';
 import './utils.dart';
+import "pb/IM.BaseDefine.pb.dart";
+import "pb/IM.Message.pb.dart";
 
 // im client
 class IMServiceManager {
   List<IMBaseService> services = new List<IMBaseService>();
   Map<int, IMBaseService> servicesMap = new Map<int, IMBaseService>();
+
   register(IMBaseService service) {
     services.add(service);
     servicesMap[service.serviceId()] = service;
@@ -27,7 +30,7 @@ class IMServiceManager {
   static const MAXBUFSIZE = 10240;
   static const READBUFSIZE = 1024;
 
-  initListen(RawSocket socket,[Function closeCb]) {
+  initListen(RawSocket socket, [Function closeCb]) {
     List<int> cache = new List();
     int offset = 0;
     int start = 0;
@@ -46,18 +49,18 @@ class IMServiceManager {
           // }
         }
         var pdu = ImPdu.buildFromBuffer(cache.sublist(start));
-        while(pdu != null) {
-            start = start + pdu.length;
-            handle(pdu);
-            pdu = ImPdu.buildFromBuffer(cache.sublist(start));  
+        while (pdu != null) {
+          start = start + pdu.length;
+          handle(pdu);
+          pdu = ImPdu.buildFromBuffer(cache.sublist(start));
         }
-        if(start == offset) {
+        if (start == offset) {
           cache.clear();
           start = 0;
           offset = 0;
         }
-      }else if(event == RawSocketEvent.closed) {
-        if(closeCb != null) {
+      } else if (event == RawSocketEvent.closed) {
+        if (closeCb != null) {
           closeCb();
         }
         return;
@@ -77,19 +80,17 @@ class IMServiceManager {
   }
 }
 
-
-
-class LoginResult{
+class LoginResult {
   bool result;
   var data;
-  LoginResult(this.result,this.data);
+
+  LoginResult(this.result, this.data);
 }
 
-enum LoginState {INIT,LOGIN,LOGOUT}
+enum LoginState { INIT, LOGIN, LOGOUT }
 
 class IMClient extends IMBaseClient {
   static final IMClient _singleton = new IMClient._internal();
-
 
   //默认构造函数保持单例
   factory IMClient() {
@@ -113,7 +114,6 @@ class IMClient extends IMBaseClient {
   String _loginServerUrl;
   RawSocket _socket;
   LoginState _loginState;
-
 
   IMClient._internal();
 
@@ -142,15 +142,13 @@ class IMClient extends IMBaseClient {
         var serverInfo = json.decode(contents);
         completer.complete(serverInfo);
       });
-    }).catchError((e){
-      if(e!=null) {
+    }).catchError((e) {
+      if (e != null) {
         completer.complete(null);
       }
     });
     return completer.future;
   }
-
-  
 
   _connected(RawSocket socket) {
     _socket = socket;
@@ -159,8 +157,8 @@ class IMClient extends IMBaseClient {
     manager.register(_imMessageService);
     manager.register(_imBuddyService);
     manager.register(_imGroupService);
-    manager.initListen(socket,(){
-      if(_loginState != LoginState.LOGOUT) {
+    manager.initListen(socket, () {
+      if (_loginState != LoginState.LOGOUT) {
         reLogin();
       }
     });
@@ -195,7 +193,7 @@ class IMClient extends IMBaseClient {
           completer.complete(LoginResult(true, _userinfo));
         } else {
           //print(result.resultString + ":" + result.resultCode);
-          completer.complete(LoginResult(false,""));
+          completer.complete(LoginResult(false, ""));
         }
         //print(_userinfo);
       });
@@ -213,19 +211,16 @@ class IMClient extends IMBaseClient {
     _imMessageService.registerListener(func);
   }
 
-
   //请求未读消息数
   requestUnReadMsgCnt() async {
     return _imMessageService.requestUnReadMsgCnt();
   }
 
-
-  updateSignInfo(signInfo){
+  updateSignInfo(signInfo) {
     return _imBuddyService.updateSignInfo(signInfo);
   }
 
-
-  _sendMsg(IMMsgData data) async{
+  _sendMsg(IMMsgData data) async {
     data.fromUserId = userID();
     data.msgId = 0;
     data.createTime = Utils.unixTime();
@@ -236,7 +231,7 @@ class IMClient extends IMBaseClient {
   }
 
   // 发送 一条文本消息 单聊
-  sendTextMsg(String msg, int toID)  async{
+  sendTextMsg(String msg, int toID) async {
     IMMsgData data = IMMsgData.create();
     data.toSessionId = toID;
     data.msgData = utf8.encode(security.encryptText(msg));
@@ -245,7 +240,7 @@ class IMClient extends IMBaseClient {
   }
 
   // 发送 文本消息 群聊
-  sendGroupTextMsg(String msg, int groupId)  async{
+  sendGroupTextMsg(String msg, int groupId) async {
     IMMsgData data = IMMsgData.create();
     data.toSessionId = groupId;
     data.msgData = utf8.encode(security.encryptText(msg));
@@ -254,12 +249,12 @@ class IMClient extends IMBaseClient {
   }
 
   //加载历史消息
-  loadSingleChatMsgs(int sessionId,int msgbeginId,int cnt) {
+  loadSingleChatMsgs(int sessionId, int msgbeginId, int cnt) {
     return _imMessageService.getSingleChatMsgList(sessionId, msgbeginId, cnt);
   }
 
   //加载历史消息
-  loadGroupChatMsgs(int sessionId,int msgbeginId,int cnt) {
+  loadGroupChatMsgs(int sessionId, int msgbeginId, int cnt) {
     return _imMessageService.getGroupChatMsgList(sessionId, msgbeginId, cnt);
   }
 
@@ -270,17 +265,17 @@ class IMClient extends IMBaseClient {
         data.msgType == MsgType.MSG_TYPE_SINGLE_AUDIO) {
       sessionType = SessionType.SESSION_TYPE_SINGLE;
     }
-    return sureReadMessage(data.msgId,data.fromUserId,sessionType);
+    return sureReadMessage(data.msgId, data.fromUserId, sessionType);
   }
 
-  sureReadMessage(msgId,sessionId,sessionType) {
-    return _imMessageService.sureReadMessage(msgId,sessionId,sessionType);
+  sureReadMessage(msgId, sessionId, sessionType) {
+    return _imMessageService.sureReadMessage(msgId, sessionId, sessionType);
   }
+
   //sureReadMsg()
-  
 
   //获取所有群组的版本信息
-  requestAllGroupVersion(){
+  requestAllGroupVersion() {
     return _imGroupService.requestNormalGroups();
   }
 
@@ -290,12 +285,12 @@ class IMClient extends IMBaseClient {
   }
 
   //获取会话
-  requestSessions(int lastUpdateTime){
+  requestSessions(int lastUpdateTime) {
     return _imBuddyService.requesRecentSessions(lastUpdateTime);
   }
 
   //获取联系人
-  requestContacts(int lastUpdateTime){
+  requestContacts(int lastUpdateTime) {
     return _imBuddyService.requestContacts(lastUpdateTime);
   }
 
@@ -307,10 +302,9 @@ class IMClient extends IMBaseClient {
     return 0;
   }
 
-  UserInfo loginUserInfo(){
+  UserInfo loginUserInfo() {
     return _userinfo;
   }
-
 
   void sendPdu(ImPdu pdu) {
     var pduData = pdu.makeBuffer();

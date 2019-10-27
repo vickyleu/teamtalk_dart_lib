@@ -1,15 +1,18 @@
 name:
   teamtalk_dart_lib
-description: A new Flutter package.
+description: Flutter package for teamtalk.
 version: 0.0.1
-author:
-homepage:
 
 environment:
   sdk: '>=2.6.0-dev.1.0 <3.0.0'
 
 dependencies:
+  flutter_test:
+    sdk: flutter
   protobuf: ^0.13.0
   convert: any
   crypto: any
   pointycastle: any
+
+
+flutter:

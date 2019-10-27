@@ -5,18 +5,17 @@
 // Distributed under terms of the MIT license.
 //
 
-
-import "../pb/IM.BaseDefine.pb.dart";
-import "../pb/IM.Login.pb.dart";
-import "../pb/IM.Other.pb.dart";
-import "../pb/IM.Message.pb.dart";
-import "../pb/IM.Buddy.pb.dart";
-import "../pb/IM.Group.pb.dart";
-
 import "dart:async";
-import './utils.dart';
+
 import './base.dart';
 import './security.dart';
+import './utils.dart';
+import "pb/IM.BaseDefine.pb.dart";
+import "pb/IM.Buddy.pb.dart";
+import "pb/IM.Group.pb.dart";
+import "pb/IM.Login.pb.dart";
+import "pb/IM.Message.pb.dart";
+import "pb/IM.Other.pb.dart";
 
 //implement services
 
@@ -44,6 +43,7 @@ class IMHeartService extends IMBaseService {
 
 class IMLoginService extends IMBaseService {
   IMLoginService(IMBaseClient client) : super(client);
+
   Future login(String userName, String password) async {
     IMLoginReq loginReq = IMLoginReq.create();
     loginReq.userName = userName;
@@ -62,7 +62,7 @@ class IMLoginService extends IMBaseService {
   unPackPdu(ImPdu pdu, int commandId) {
     if (LoginCmdID.CID_LOGIN_RES_USERLOGIN.value == commandId) {
       return IMLoginRes.fromBuffer(pdu.buffer.sublist(16));
-    }else if(LoginCmdID.CID_LOGIN_RES_LOGINOUT.value == commandId) {
+    } else if (LoginCmdID.CID_LOGIN_RES_LOGINOUT.value == commandId) {
       return IMLogoutRsp.fromBuffer(pdu.buffer.sublist(16));
     }
     return null;
@@ -75,6 +75,7 @@ class IMLoginService extends IMBaseService {
 
 class IMMessageService extends IMBaseService {
   TTSecurity security = TTSecurity.DefaultSecurity();
+
   IMMessageService(IMBaseClient client) : super(client);
 
   List<Function> newMessageListeners = new List<Function>();
@@ -93,19 +94,20 @@ class IMMessageService extends IMBaseService {
     } else if (MessageCmdID.CID_MSG_DATA_ACK.value == commandId) {
       IMMsgDataAck dataAck = IMMsgDataAck.fromBuffer(pdu.buffer.sublist(16));
       return dataAck;
-    } else if(MessageCmdID.CID_MSG_LIST_RESPONSE.value == commandId) {
-       return IMGetMsgListRsp.fromBuffer(pdu.buffer.sublist(16));
-    } else if(MessageCmdID.CID_MSG_UNREAD_CNT_RESPONSE.value == commandId) {
+    } else if (MessageCmdID.CID_MSG_LIST_RESPONSE.value == commandId) {
+      return IMGetMsgListRsp.fromBuffer(pdu.buffer.sublist(16));
+    } else if (MessageCmdID.CID_MSG_UNREAD_CNT_RESPONSE.value == commandId) {
       return IMUnreadMsgCntRsp.fromBuffer(pdu.buffer.sublist(16));
     }
   }
 
-  Future sendChatMessage(IMMsgData data) async{
+  Future sendChatMessage(IMMsgData data) async {
     return fetchApi(data, MessageCmdID.CID_MSG_DATA.value);
   }
 
   //获取历史消息
-  Future _getMsgList(int sessionId, int msgIdBegin, int count, SessionType sessionType) async{
+  Future _getMsgList(
+      int sessionId, int msgIdBegin, int count, SessionType sessionType) async {
     IMGetMsgListReq req = IMGetMsgListReq.create();
     req.userId = client.userID();
     req.sessionId = sessionId;
@@ -115,21 +117,23 @@ class IMMessageService extends IMBaseService {
     return fetchApi(req, MessageCmdID.CID_MSG_LIST_REQUEST.value);
   }
 
-  Future getSingleChatMsgList(int sessionId, int msgIdBegin, int count) async{
-    return _getMsgList(sessionId, msgIdBegin, count, SessionType.SESSION_TYPE_SINGLE);
+  Future getSingleChatMsgList(int sessionId, int msgIdBegin, int count) async {
+    return _getMsgList(
+        sessionId, msgIdBegin, count, SessionType.SESSION_TYPE_SINGLE);
   }
 
-  Future getGroupChatMsgList(int sessionId, int msgIdBegin, int count) async{
-    return _getMsgList(sessionId, msgIdBegin, count, SessionType.SESSION_TYPE_GROUP);
+  Future getGroupChatMsgList(int sessionId, int msgIdBegin, int count) async {
+    return _getMsgList(
+        sessionId, msgIdBegin, count, SessionType.SESSION_TYPE_GROUP);
   }
 
-  Future requestUnReadMsgCnt(){
+  Future requestUnReadMsgCnt() {
     IMUnreadMsgCntReq req = IMUnreadMsgCntReq.create();
     req.userId = client.userID();
     return fetchApi(req, MessageCmdID.CID_MSG_UNREAD_CNT_REQUEST.value);
   }
 
-  void sureReadMessage(msgId,sessionId,sessionType) {
+  void sureReadMessage(msgId, sessionId, sessionType) {
     IMMsgDataReadAck readAck = IMMsgDataReadAck.create();
     readAck.msgId = msgId;
     readAck.userId = client.userID();
@@ -137,7 +141,6 @@ class IMMessageService extends IMBaseService {
     readAck.sessionType = sessionType;
     requestForPbMsg(readAck, MessageCmdID.CID_MSG_READ_ACK.value);
   }
-
 
   // void sureReadMessage(IMMsgData data) {
   //   IMMsgDataReadAck readAck = IMMsgDataReadAck.create();
@@ -158,7 +161,6 @@ class IMMessageService extends IMBaseService {
   }
 }
 
-
 class IMGroupService extends IMBaseService {
   IMGroupService(IMBaseClient client) : super(client);
 
@@ -168,9 +170,9 @@ class IMGroupService extends IMBaseService {
     return fetchApi(req, GroupCmdID.CID_GROUP_NORMAL_LIST_REQUEST.value);
   }
 
-  Future requestGroupInfo(List ids) async{
+  Future requestGroupInfo(List ids) async {
     IMGroupInfoListReq req = IMGroupInfoListReq.create();
-    ids.forEach((id){
+    ids.forEach((id) {
       GroupVersionInfo info = GroupVersionInfo();
       info.groupId = id;
       info.version = 0;
@@ -188,20 +190,17 @@ class IMGroupService extends IMBaseService {
 
   @override
   unPackPdu(ImPdu pdu, int commandId) {
-    if(GroupCmdID.CID_GROUP_NORMAL_LIST_RESPONSE.value == commandId) {
+    if (GroupCmdID.CID_GROUP_NORMAL_LIST_RESPONSE.value == commandId) {
       return IMNormalGroupListRsp.fromBuffer(pdu.buffer.sublist(16));
-    }else if(GroupCmdID.CID_GROUP_INFO_RESPONSE.value == commandId) {
+    } else if (GroupCmdID.CID_GROUP_INFO_RESPONSE.value == commandId) {
       return IMGroupInfoListRsp.fromBuffer(pdu.buffer.sublist(16));
     }
 
     return null;
   }
-
 }
 
-
-class IMBuddyService extends IMBaseService{
-
+class IMBuddyService extends IMBaseService {
   IMBuddyService(IMBaseClient client) : super(client);
 
   @override
@@ -209,18 +208,20 @@ class IMBuddyService extends IMBaseService{
     return ServiceID.SID_BUDDY_LIST.value;
   }
 
-  updateSignInfo(signInfo){
+  updateSignInfo(signInfo) {
     IMChangeSignInfoReq req = IMChangeSignInfoReq.create();
     req.userId = client.userID();
     req.signInfo = signInfo;
-    return fetchApi(req, BuddyListCmdID.CID_BUDDY_LIST_CHANGE_SIGN_INFO_REQUEST.value);
+    return fetchApi(
+        req, BuddyListCmdID.CID_BUDDY_LIST_CHANGE_SIGN_INFO_REQUEST.value);
   }
 
-  requesRecentSessions(int lastTime){
+  requesRecentSessions(int lastTime) {
     IMRecentContactSessionReq req = IMRecentContactSessionReq.create();
     req.latestUpdateTime = lastTime;
     req.userId = client.userID();
-    return fetchApi(req, BuddyListCmdID.CID_BUDDY_LIST_RECENT_CONTACT_SESSION_REQUEST.value);
+    return fetchApi(req,
+        BuddyListCmdID.CID_BUDDY_LIST_RECENT_CONTACT_SESSION_REQUEST.value);
   }
 
   requestContacts(int lastTime) {
@@ -230,7 +231,7 @@ class IMBuddyService extends IMBaseService{
     return fetchApi(req, BuddyListCmdID.CID_BUDDY_LIST_ALL_USER_REQUEST.value);
   }
 
-  requestContactsByIds(List<int> ids){
+  requestContactsByIds(List<int> ids) {
     IMUsersInfoReq req = IMUsersInfoReq.create();
     req.userIdList.addAll(ids);
     req.userId = client.userID();
@@ -239,16 +240,19 @@ class IMBuddyService extends IMBaseService{
 
   @override
   unPackPdu(ImPdu pdu, int commandId) {
-    if(BuddyListCmdID.CID_BUDDY_LIST_RECENT_CONTACT_SESSION_RESPONSE.value == commandId) {
+    if (BuddyListCmdID.CID_BUDDY_LIST_RECENT_CONTACT_SESSION_RESPONSE.value ==
+        commandId) {
       return IMRecentContactSessionRsp.fromBuffer(pdu.buffer.sublist(16));
-    } else if(BuddyListCmdID.CID_BUDDY_LIST_ALL_USER_RESPONSE.value  == commandId) {
-      return  IMAllUserRsp.fromBuffer(pdu.buffer.sublist(16));
-    } else if(BuddyListCmdID.CID_BUDDY_LIST_USER_INFO_RESPONSE.value == commandId){
+    } else if (BuddyListCmdID.CID_BUDDY_LIST_ALL_USER_RESPONSE.value ==
+        commandId) {
+      return IMAllUserRsp.fromBuffer(pdu.buffer.sublist(16));
+    } else if (BuddyListCmdID.CID_BUDDY_LIST_USER_INFO_RESPONSE.value ==
+        commandId) {
       return IMUsersInfoRsp.fromBuffer(pdu.buffer.sublist(16));
-    } else if(BuddyListCmdID.CID_BUDDY_LIST_CHANGE_SIGN_INFO_RESPONSE.value == commandId){
+    } else if (BuddyListCmdID.CID_BUDDY_LIST_CHANGE_SIGN_INFO_RESPONSE.value ==
+        commandId) {
       return IMChangeSignInfoRsp.fromBuffer(pdu.buffer.sublist(16));
     }
     return null;
   }
-
 }
